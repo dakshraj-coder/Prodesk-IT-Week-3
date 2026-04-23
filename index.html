@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dev Detective</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+
+        input {
+            padding: 10px;
+            width: 250px;
+        }
+
+        button {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .card {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            display: inline-block;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        img {
+            border-radius: 50%;
+        }
+
+        a {
+            color: blue;
+            text-decoration: none;
+        }
+
+        #repos {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Dev Detective 🕵️</h1>
+
+    <input type="text" id="username" placeholder="Enter GitHub username">
+    <button onclick="getUser()">Search</button>
+
+    <p id="loading"></p>
+
+    <div id="profile"></div>
+    <div id="repos"></div>
+
+    <script>
+        async function getUser() {
+            const username = document.getElementById("username").value;
+            const profile = document.getElementById("profile");
+            const reposDiv = document.getElementById("repos");
+            const loading = document.getElementById("loading");
+
+            // Clear old data
+            profile.innerHTML = "";
+            reposDiv.innerHTML = "";
+            loading.innerText = "Loading...";
+
+            try {
+                const response = await fetch(`https://api.github.com/users/${username}`);
+
+                if (!response.ok) {
+                    throw new Error("User not found");
+                }
+
+                const user = await response.json();
+
+                loading.innerText = "";
+
+                showProfile(user);
+
+                // Level 2: Fetch repos
+                getRepos(user.repos_url);
+
+            } catch (error) {
+                loading.innerText = "";
+                profile.innerHTML = "<p>User Not Found ❌</p>";
+            }
+        }
+
+        function showProfile(user) {
+            const profile = document.getElementById("profile");
+
+            const date = new Date(user.created_at);
+            const formattedDate = date.toDateString();
+
+            profile.innerHTML = `
+                <div class="card">
+                    <img src="${user.avatar_url}" width="120">
+                    <h2>${user.name || "No Name"}</h2>
+                    <p>${user.bio || "No bio available"}</p>
+                    <p><b>Joined:</b> ${formattedDate}</p>
+                    <a href="${user.blog}" target="_blank">
+                        ${user.blog ? "Portfolio" : ""}
+                    </a>
+                </div>
+            `;
+        }
+
+        async function getRepos(url) {
+            const reposDiv = document.getElementById("repos");
+
+            const response = await fetch(url);
+            const repos = await response.json();
+
+            // Sort by latest
+            repos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            const top5 = repos.slice(0, 5);
+
+            reposDiv.innerHTML = "<h3>Top 5 Repositories</h3>";
+
+            top5.forEach(repo => {
+                const date = new Date(repo.created_at);
+                const formattedDate = date.toDateString();
+
+                reposDiv.innerHTML += `
+                    <p>
+                        <a href="${repo.html_url}" target="_blank">
+                            ${repo.name}
+                        </a> - ${formattedDate}
+                    </p>
+                `;
+            });
+        }
+    </script>
+
+</body>
+</html>
